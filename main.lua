@@ -1,6 +1,6 @@
 meta = {
     name = "Manhunt",
-    version = "1.59",
+    version = "1.60",
     author = "Gboi",
     description = "Speedrun through the game while the hunters chase you down. (Made for online specifically may work weirdly in local co-op)",
     online_safe = true
@@ -165,7 +165,7 @@ local function get_dead_players()
     local state = get_local_state() --[[@as StateMemory]]
     if state.screen ~= SCREEN.LEVEL then return 0 end
     local dead = 0
-    for i, inventory in ipairs(state.items.player_inventory) do 
+    for i, inventory in ipairs(state.items.player_inventory) do
         if inventory.time_of_death > 0 then dead = dead + 1 end
     end
     return dead
@@ -173,7 +173,7 @@ end
 
 local function i_am_runner()
     local state = get_local_state() --[[@as StateMemory]]
-    if state.screen == SCREEN.LEVEL then 
+    if state.screen == SCREEN.LEVEL then
         local runner = get_runner(get_max_players())
         local me = get_local_player()
         return me and runner and me.uid == runner.uid
@@ -234,7 +234,15 @@ local function hunters_function(hunter)
         if hunter.health ~= 0 then 
             check_and_delete_ghosts(hunter.inventory.player_slot)
             local waiting = false
-            if state.time_level <= 60 and state.theme ~= THEME.DWELLING then 
+
+            local waittime = 0;
+            if state.theme == THEME.DWELLING then
+                waittime = 120
+            else
+                waittime = 60
+            end
+        
+            if state.time_level <= waittime then 
                 waiting = true
                 hunter.flags = set_flag(hunter.flags, ENT_FLAG.PASSES_THROUGH_EVERYTHING)
                 hunter.flags = set_flag(hunter.flags, ENT_FLAG.INVISIBLE)
@@ -243,39 +251,22 @@ local function hunters_function(hunter)
                 local ex, ey = get_position(get_entities_by(ENT_TYPE.FLOOR_DOOR_ENTRANCE, MASK.FLOOR, LAYER.BOTH)[1])
                 local runner = get_runner(get_max_players())
                 if runner then 
-                    local rx, ry = get_position(runner.uid)
+                    -- local rx, ry = get_position(runner.uid)
                     if not i_am_runner() and not i_am_helper() then 
-                        set_camera_position(rx, ry)
+                        -- set_camera_position(rx, ry)
+                        state.camera.focused_entity_uid = runner.uid
+                    else
+                        state.camera.focused_entity_uid = get_local_player().uid;
                     end
                 end
                 hunter.x = ex
                 hunter.y = ey
             end
-            if state.time_level <= 120 and state.theme == THEME.DWELLING then 
-                waiting = true
-                hunter.flags = set_flag(hunter.flags, ENT_FLAG.PASSES_THROUGH_EVERYTHING)
-                hunter.flags = set_flag(hunter.flags, ENT_FLAG.INVISIBLE)
-                hunter.flags = clr_flag(hunter.flags, ENT_FLAG.PICKUPABLE)
-                hunter.more_flags = set_flag(hunter.more_flags, ENT_MORE_FLAG.DISABLE_INPUT)
-                local ex, ey = get_position(get_entities_by(ENT_TYPE.FLOOR_DOOR_ENTRANCE, MASK.FLOOR, LAYER.BOTH)[1])
-                local runner = get_runner(get_max_players())
-                if runner then 
-                    local rx, ry = get_position(runner.uid)
-                    if not i_am_runner() and not i_am_helper() then 
-                        set_camera_position(rx, ry)
-                    end
-                end
-                hunter.x = ex
-                hunter.y = ey
-            end
-            if state.time_level == 120 and state.theme == THEME.DWELLING then 
+            if state.time_level == waittime then
                 generate_world_particles(PARTICLEEMITTER.MERCHANT_APPEAR_POOF, hunter.uid)
                 play_sound(VANILLA_SOUND.ENEMIES_VLAD_TRIGGER, hunter.uid)
             end
-            if state.time_level == 60 and state.theme ~= THEME.DWELLING then 
-                generate_world_particles(PARTICLEEMITTER.MERCHANT_APPEAR_POOF, hunter.uid)
-                play_sound(VANILLA_SOUND.ENEMIES_VLAD_TRIGGER, hunter.uid)
-            end
+
             if not waiting and state.time_level <= 130 then 
                 hunter.flags = clr_flag(hunter.flags, ENT_FLAG.PASSES_THROUGH_EVERYTHING)
                 hunter.more_flags = clr_flag(hunter.more_flags, ENT_MORE_FLAG.DISABLE_INPUT)
@@ -287,7 +278,7 @@ local function hunters_function(hunter)
             local x, y, l = random_location()
             respawn_player(hunter, x, y, l)
         end
-        if hunter.health == 0 then 
+        if hunter.health == 0 then
             hunter.x = -1
             hunter.y = -1
         end
@@ -425,14 +416,14 @@ set_callback(function()
 
         if state.time_level == 60*10 then
             local exit_door = get_entities_by(ENT_TYPE.FLOOR_DOOR_EXIT, MASK.FLOOR, LAYER.BOTH)
-            for i, uid in ipairs(exit_door) do 
+            for i, uid in ipairs(exit_door) do
                 local x, y = get_position(uid)
                 unlock_door_at(x, y)
             end
         end
-        if not did_ten_sec and state.time_level == 60*5 then 
+        if not did_ten_sec and state.time_level == 60*5 then
             local exit_door = get_entities_by(ENT_TYPE.FLOOR_DOOR_EXIT, MASK.FLOOR, LAYER.BOTH)
-            for i, uid in ipairs(exit_door) do 
+            for i, uid in ipairs(exit_door) do
                 local x, y = get_position(uid)
                 unlock_door_at(x, y)
             end
